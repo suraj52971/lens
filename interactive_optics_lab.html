@@ -1,0 +1,2270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Optics Lab & Sign Convention Simulator</title>
+    <style>
+        :root {
+            --bg: #0f1115;
+            --panel-bg: #161a22;
+            --text: #f0f4f8;
+            --text-secondary: #94a3b8;
+            --accent: #3b82f6;
+            --accent-glow: rgba(59, 130, 246, 0.35);
+            --convex-color: #ef4444;
+            --concave-color: #06b6d4;
+            --ray-parallel: #f97316;
+            --ray-central: #3b82f6;
+            --ray-focal: #8b5cf6;
+            --success: #10b981;
+            --danger: #ef4444;
+            --slider-track: #272e3f;
+            --border: #2e3748;
+            --card-bg: #1e293b;
+            --bench-bg: #f8fafc;
+            --coach-bg: #111827;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg);
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            user-select: none;
+            overflow-x: hidden;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 1440px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        /* Header */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid var(--border);
+        }
+        .header-title-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .header h1 {
+            font-size: 1.4rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #60a5fa, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+        .header .badge {
+            font-size: 0.7rem;
+            background: var(--card-bg);
+            padding: 4px 10px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        /* Two Column Layout for Main Workbench and AI Coach */
+        .lab-layout {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 16px;
+        }
+        @media (min-width: 1024px) {
+            .lab-layout {
+                grid-template-columns: 2.8fr 1.2fr;
+            }
+        }
+
+        .workbench-column {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        /* Control Panel - Premium Horizontal Layout */
+        .control-panel {
+            background: var(--panel-bg);
+            border-radius: 12px;
+            padding: 12px 16px;
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .horizontal-controls-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .control-group-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            flex: 1;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            flex: 1;
+            min-width: 140px;
+        }
+        .control-group.compact {
+            flex: 0 1 auto;
+            min-width: 120px;
+        }
+        .control-group label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-secondary);
+            font-weight: 700;
+        }
+        .control-group select,
+        .control-group input[type="range"] {
+            background: var(--slider-track);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.2s;
+        }
+        .control-group select:hover {
+            border-color: var(--accent);
+            background: var(--card-bg);
+        }
+        .control-group select:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px var(--accent-glow);
+        }
+        .range-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .range-row input[type="range"] {
+            flex: 1;
+            height: 6px;
+            border-radius: 3px;
+            outline: none;
+            appearance: none;
+            padding: 0;
+        }
+        .range-row input[type="range"]::-webkit-slider-thumb {
+            appearance: none;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        .range-row input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+        .range-value {
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: var(--accent);
+            min-width: 54px;
+            text-align: right;
+            font-family: 'SF Mono', 'Cascadia Code', monospace;
+        }
+
+        /* Horizon Toggle Chips */
+        .toggle-chips-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            align-items: center;
+            padding-top: 8px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .chip-label-prefix {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-secondary);
+            font-weight: 700;
+            margin-right: 8px;
+        }
+        .toggle-chip {
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .toggle-chip:hover {
+            border-color: var(--accent);
+            color: var(--text);
+            background: rgba(59, 130, 246, 0.05);
+        }
+        .toggle-chip.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #ffffff;
+            box-shadow: 0 2px 8px var(--accent-glow);
+        }
+        .toggle-chip .indicator {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.4);
+        }
+        .toggle-chip.active .indicator {
+            background: #ffffff;
+            box-shadow: 0 0 4px #ffffff;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+        .btn {
+            padding: 8px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--card-bg);
+            color: var(--text);
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 600;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn:hover {
+            border-color: var(--accent);
+            background: #2e3a4e;
+        }
+        .btn.btn-primary {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: #fff;
+        }
+        .btn.btn-primary:hover {
+            background: #2563eb;
+        }
+
+        /* Segmented Controller (Device Switch) */
+        .segmented-control {
+            display: flex;
+            background: var(--slider-track);
+            padding: 2px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+        }
+        .segmented-button {
+            flex: 1;
+            padding: 6px 12px;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            font-weight: 600;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-align: center;
+            white-space: nowrap;
+        }
+        .segmented-button.active {
+            background: var(--card-bg);
+            color: var(--text);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        /* Canvas Wrapper & Optical Laboratory bench */
+        .canvas-wrapper {
+            position: relative;
+            background: var(--bench-bg);
+            border-radius: 12px;
+            border: 1px solid #cbd5e1;
+            overflow: hidden;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.06), 0 10px 25px -5px rgba(0,0,0,0.3);
+            cursor: crosshair;
+            aspect-ratio: 2.2 / 1;
+            min-height: 380px;
+            display: flex;
+            flex-direction: column;
+        }
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Sign Convention Bar */
+        .sign-bar {
+            background: var(--panel-bg);
+            border-radius: 10px;
+            padding: 10px 16px;
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            font-size: 0.75rem;
+            flex-wrap: wrap;
+            letter-spacing: 0.3px;
+        }
+        .sign-bar-side {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .sign-bar .neg {
+            color: #f87171;
+            font-weight: 700;
+        }
+        .sign-bar .pos {
+            color: #34d399;
+            font-weight: 700;
+        }
+        .sign-bar .arrow-line {
+            color: var(--text-secondary);
+            font-family: monospace;
+        }
+        .sign-bar .lens-marker {
+            font-weight: 800;
+            color: var(--accent);
+            font-size: 0.8rem;
+            background: var(--card-bg);
+            padding: 2px 8px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+        }
+
+        /* Info Panel */
+        .info-panel {
+            background: var(--panel-bg);
+            border-radius: 12px;
+            padding: 12px 18px;
+            border: 1px solid var(--border);
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 12px;
+            font-size: 0.8rem;
+        }
+        .info-card {
+            background: rgba(255,255,255,0.02);
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.04);
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .info-card-label {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-secondary);
+        }
+        .info-card-value {
+            font-weight: 700;
+            color: var(--text);
+            font-size: 0.95rem;
+            font-family: 'SF Mono', 'Cascadia Code', monospace;
+        }
+        .info-card-value.highlight {
+            color: var(--accent);
+        }
+
+        /* Focus Tooltip Overlay */
+        .focus-tooltip {
+            position: absolute;
+            pointer-events: none;
+            background: #0f172a;
+            color: #fff;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            white-space: nowrap;
+            border: 1px solid var(--accent);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            z-index: 10;
+            opacity: 0;
+            transition: opacity 0.2s, transform 0.2s;
+            transform: translateY(5px);
+        }
+        .focus-tooltip.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Quick Lab Guide */
+        .lab-guide {
+            background: var(--panel-bg);
+            border-radius: 12px;
+            padding: 14px 18px;
+            border: 1px solid var(--border);
+            font-size: 0.8rem;
+            line-height: 1.5;
+            color: var(--text-secondary);
+        }
+        .lab-guide h3 {
+            color: var(--text);
+            font-size: 0.9rem;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* ====================================================
+           ✨ GEMINI COACH PANEL STYLING
+           ==================================================== */
+        .coach-column {
+            background: var(--panel-bg);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            max-height: 800px;
+        }
+        .coach-header {
+            background: rgba(59, 130, 246, 0.1);
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .coach-header-title {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 800;
+            font-size: 0.95rem;
+            color: #60a5fa;
+            letter-spacing: 0.3px;
+        }
+        .coach-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            padding: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+        .coach-btn {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .coach-btn:hover {
+            border-color: #3b82f6;
+            background: rgba(59, 130, 246, 0.1);
+        }
+        .coach-terminal {
+            flex: 1;
+            padding: 16px;
+            overflow-y: auto;
+            background: var(--coach-bg);
+            font-size: 0.85rem;
+            line-height: 1.6;
+            color: #e2e8f0;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-height: 250px;
+        }
+        .coach-bubble {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.05);
+            padding: 12px;
+            border-radius: 10px;
+        }
+        .coach-bubble.user-msg {
+            background: rgba(59, 130, 246, 0.15);
+            border-color: rgba(59, 130, 246, 0.3);
+            align-self: flex-end;
+            max-width: 90%;
+        }
+        .coach-bubble.coach-msg {
+            background: rgba(255, 255, 255, 0.02);
+            border-left: 3px solid #3b82f6;
+            align-self: flex-start;
+        }
+        .coach-bubble h4 {
+            color: #60a5fa;
+            font-size: 0.85rem;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .coach-bubble code {
+            background: rgba(0,0,0,0.3);
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-family: monospace;
+            color: #ff9f43;
+        }
+        .coach-bubble ul {
+            margin-left: 18px;
+            margin-top: 6px;
+            margin-bottom: 6px;
+        }
+        .coach-bubble blockquote {
+            border-left: 2px solid var(--text-secondary);
+            padding-left: 8px;
+            color: var(--text-secondary);
+            margin: 8px 0;
+            font-style: italic;
+        }
+        .coach-input-area {
+            padding: 12px;
+            background: var(--panel-bg);
+            border-top: 1px solid var(--border);
+            display: flex;
+            gap: 8px;
+        }
+        .coach-input {
+            flex: 1;
+            background: var(--slider-track);
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            outline: none;
+        }
+        .coach-input:focus {
+            border-color: var(--accent);
+        }
+        .coach-send-btn {
+            background: var(--accent);
+            border: none;
+            color: white;
+            padding: 8px 14px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .coach-send-btn:hover {
+            background: #2563eb;
+        }
+        .coach-loading {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+            font-style: italic;
+            padding: 8px;
+        }
+        .coach-spinner {
+            width: 14px;
+            height: 14px;
+            border: 2px solid rgba(255,255,255,0.2);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: coachSpin 0.8s linear infinite;
+        }
+        @keyframes coachSpin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive Layout fixes */
+        @media (max-width: 1024px) {
+            .app-container {
+                padding: 8px;
+            }
+            .canvas-wrapper {
+                aspect-ratio: 1.8 / 1;
+            }
+            .coach-column {
+                max-height: 500px;
+            }
+        }
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.2rem;
+            }
+            .canvas-wrapper {
+                aspect-ratio: 1.5 / 1;
+                min-height: 320px;
+            }
+            .control-panel {
+                padding: 10px;
+            }
+            .horizontal-controls-row {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 12px;
+            }
+            .control-group-container {
+                flex-direction: column;
+                gap: 10px;
+            }
+            .control-group {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-title-area">
+                <h1>🔬 Interactive Optics Bench</h1>
+                <span class="badge">Virtual Physics Lab</span>
+            </div>
+            <!-- Segmented Control for LENS vs MIRROR -->
+            <div class="segmented-control" id="deviceModeSwitch">
+                <button class="segmented-button active" data-mode="lens">🔍 Thin Lens</button>
+                <button class="segmented-button" data-mode="mirror">🪞 Spherical Mirror</button>
+            </div>
+        </div>
+
+        <!-- Dynamic Two Column Layout -->
+        <div class="lab-layout">
+            
+            <!-- Left Workbench Column -->
+            <div class="workbench-column">
+                
+                <!-- Horizontal Control Panel -->
+                <div class="control-panel">
+                    <div class="horizontal-controls-row">
+                        <div class="control-group-container">
+                            <div class="control-group compact">
+                                <label id="typeLabel">Lens Type</label>
+                                <select id="lensType">
+                                    <option value="convex">Convex (Converging)</option>
+                                    <option value="concave">Concave (Diverging)</option>
+                                </select>
+                            </div>
+                            <div class="control-group">
+                                <label id="focalLabel">Focal Length (f)</label>
+                                <div class="range-row">
+                                    <input type="range" id="focalLength" min="5" max="35" value="12" step="0.5">
+                                    <span class="range-value" id="focalLengthVal">12.0 cm</span>
+                                </div>
+                            </div>
+                            <div class="control-group">
+                                <label>Object Position (u)</label>
+                                <div class="range-row">
+                                    <input type="range" id="objectDistance" min="3" max="80" value="25" step="0.5">
+                                    <span class="range-value" id="objectDistanceVal">25.0 cm</span>
+                                </div>
+                            </div>
+                            <div class="control-group compact">
+                                <label>Source Type</label>
+                                <select id="lightSource">
+                                    <option value="point">Arrow (Object)</option>
+                                    <option value="parallel">Parallel Beam</option>
+                                    <option value="laser">Single Laser Ray</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="action-buttons">
+                            <button class="btn" id="resetBtn" title="Reset Simulation">↺ Reset</button>
+                            <button class="btn btn-primary" id="stepBtn" title="Step through Explanations">📖 Explain</button>
+                        </div>
+                    </div>
+
+                    <!-- Horizontal Chip-based Toggles for Features (Saves vertical space!) -->
+                    <div class="toggle-chips-row">
+                        <span class="chip-label-prefix">Visual Guides:</span>
+                        <button class="toggle-chip active" id="toggleExtensions">
+                            <span class="indicator"></span> Ray Extensions
+                        </button>
+                        <button class="toggle-chip active" id="toggleRays">
+                            <span class="indicator"></span> Principal Rays
+                        </button>
+                        <button class="toggle-chip active" id="toggleFocus">
+                            <span class="indicator"></span> Focus Points
+                        </button>
+                        <button class="toggle-chip active" id="toggle2F">
+                            <span class="indicator"></span> 2F / Curvature (C)
+                        </button>
+                        <button class="toggle-chip active" id="togglePhotons">
+                            <span class="indicator"></span> Light Photons
+                        </button>
+                        <button class="toggle-chip" id="toggleGrid">
+                            <span class="indicator"></span> Centimeter Grid
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Canvas Area -->
+                <div class="canvas-wrapper" id="canvasWrapper">
+                    <canvas id="mainCanvas"></canvas>
+                    <div class="focus-tooltip" id="focusTooltip"></div>
+                </div>
+
+                <!-- Cartesian Sign Convention Reference -->
+                <div class="sign-bar">
+                    <div class="sign-bar-side">
+                        <span class="neg">(−) Left Side</span>
+                        <span class="arrow-line">◀──────────────────</span>
+                    </div>
+                    <span class="lens-marker" id="signBarDevice">⟐ OPTICAL CENTER</span>
+                    <div class="sign-bar-side">
+                        <span class="arrow-line">──────────────────▶</span>
+                        <span class="pos">(+) Right Side</span>
+                    </div>
+                </div>
+
+                <!-- Info Cards Grid -->
+                <div class="info-panel" id="infoPanel">
+                    <div class="info-card">
+                        <span class="info-card-label">Focus Behavior</span>
+                        <span class="info-card-value highlight" id="focusType">Real</span>
+                    </div>
+                    <div class="info-card">
+                        <span class="info-card-label">Focal Length (f)</span>
+                        <span class="info-card-value" id="fDisplay">+12.0 cm</span>
+                    </div>
+                    <div class="info-card">
+                        <span class="info-card-label">Object Distance (u)</span>
+                        <span class="info-card-value" id="uDisplay">−25.0 cm</span>
+                    </div>
+                    <div class="info-card">
+                        <span class="info-card-label">Image Distance (v)</span>
+                        <span class="info-card-value highlight" id="vDisplay">+23.1 cm</span>
+                    </div>
+                    <div class="info-card">
+                        <span class="info-card-label">Magnification (m)</span>
+                        <span class="info-card-value" id="magnification">−0.92×</span>
+                    </div>
+                    <div class="info-card">
+                        <span class="info-card-label">Resulting Image</span>
+                        <span class="info-card-value" id="imageType">Real, Inverted</span>
+                    </div>
+                </div>
+
+                <!-- Lab Guide -->
+                <div class="lab-guide">
+                    <h3>💡 Real-time Physics Rules</h3>
+                    <p id="physicsGuideText">Currently in <strong>Lens Mode</strong>. Convex lenses form real images when the object is placed beyond $F$ ($u > f$), and virtual magnified images (magnifying glass effect) when placed inside $F$ ($u < f$). Concave lenses always produce diminished, upright, virtual images.</p>
+                </div>
+
+            </div>
+
+            <!-- Right Column: ✨ Gemini AI Science Coach -->
+            <div class="coach-column">
+                <div class="coach-header">
+                    <div class="coach-header-title">
+                        <span>🤖 ✨ AI Science Coach</span>
+                    </div>
+                    <span style="font-size: 0.65rem; color: #34d399; font-weight: bold; background: rgba(52,211,153,0.1); padding: 2px 6px; border-radius: 4px;"> 2.5</span>
+                </div>
+                
+                <div class="coach-actions">
+                    <button class="coach-btn" id="coachAnalyzeBtn" title="Let the AI analyze the current laboratory configuration">
+                        ✨ Coach: Analyze Setup
+                    </button>
+                    <button class="coach-btn" id="coachChallengeBtn" title="Generate a matching conceptual optics challenge">
+                        ✨ Coach: Give Challenge
+                    </button>
+                </div>
+
+                <div class="coach-terminal" id="coachTerminal">
+                    <div class="coach-bubble coach-msg">
+                        <h4>Professor Lumens</h4>
+                        Hello student! I am your AI Science Coach. I can see your optical workbench parameters instantly. 
+                        <br><br>
+                        Click <strong>✨ Coach: Analyze Setup</strong> to understand the physics of your current design, or type any optics question below!
+                    </div>
+                </div>
+
+                <div id="coachLoadingArea" class="coach-loading" style="display: none;">
+                    <div class="coach-spinner"></div>
+                    <span id="coachLoadingText">Professor Lumens is calculating...</span>
+                </div>
+
+                <div class="coach-input-area">
+                    <input type="text" class="coach-input" id="coachInput" placeholder="Ask a question about lenses, mirrors, or rays...">
+                    <button class="coach-send-btn" id="coachSendBtn">Send</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ─────────────────────────────────────
+            // DOM ELEMENTS
+            // ─────────────────────────────────────
+            const canvas = document.getElementById('mainCanvas');
+            const ctx = canvas.getContext('2d');
+            const wrapper = document.getElementById('canvasWrapper');
+            const tooltip = document.getElementById('focusTooltip');
+
+            const deviceModeSwitch = document.getElementById('deviceModeSwitch');
+            const lensTypeSelect = document.getElementById('lensType');
+            const focalLengthSlider = document.getElementById('focalLength');
+            const objectDistanceSlider = document.getElementById('objectDistance');
+            const lightSourceSelect = document.getElementById('lightSource');
+            
+            // Buttons and Toggle Chips
+            const resetBtn = document.getElementById('resetBtn');
+            const stepBtn = document.getElementById('stepBtn');
+            const toggleExtensions = document.getElementById('toggleExtensions');
+            const toggleRays = document.getElementById('toggleRays');
+            const toggleFocus = document.getElementById('toggleFocus');
+            const toggle2F = document.getElementById('toggle2F');
+            const togglePhotons = document.getElementById('togglePhotons');
+            const toggleGrid = document.getElementById('toggleGrid');
+
+            // Text displays
+            const focalLengthValEl = document.getElementById('focalLengthVal');
+            const objectDistanceValEl = document.getElementById('objectDistanceVal');
+            const focusTypeEl = document.getElementById('focusType');
+            const fDisplayEl = document.getElementById('fDisplay');
+            const uDisplayEl = document.getElementById('uDisplay');
+            const vDisplayEl = document.getElementById('vDisplay');
+            const imageTypeEl = document.getElementById('imageType');
+            const magnificationEl = document.getElementById('magnification');
+            
+            const typeLabel = document.getElementById('typeLabel');
+            const focalLabel = document.getElementById('focalLabel');
+            const signBarDevice = document.getElementById('signBarDevice');
+            const physicsGuideText = document.getElementById('physicsGuideText');
+
+            // ✨ Coach elements
+            const coachAnalyzeBtn = document.getElementById('coachAnalyzeBtn');
+            const coachChallengeBtn = document.getElementById('coachChallengeBtn');
+            const coachTerminal = document.getElementById('coachTerminal');
+            const coachInput = document.getElementById('coachInput');
+            const coachSendBtn = document.getElementById('coachSendBtn');
+            const coachLoadingArea = document.getElementById('coachLoadingArea');
+            const coachLoadingText = document.getElementById('coachLoadingText');
+
+            // ─────────────────────────────────────
+            // STATE
+            // ─────────────────────────────────────
+            const state = {
+                deviceMode: 'lens', // 'lens' | 'mirror'
+                opticType: 'convex', // 'convex' | 'concave' (used for both lens & mirror)
+                focalLengthCm: 12, 
+                objectDistanceCm: 25, 
+                lightSource: 'point', 
+                
+                // Toggle Flags
+                showExtensions: true,
+                showRays: true,
+                showFocus: true,
+                show2F: true,
+                animatePhotons: true,
+                showGrid: false,
+
+                // Computed Parameters (Signed)
+                f: 12,  // focal length
+                u: -25, // object position
+                v: 0,   // image position
+                m: 0,   // magnification
+                imageReal: true,
+                imageInverted: true,
+                imageX: 0,
+                imageHeight: 0,
+
+                // Dragging systems
+                draggedElement: null, // 'object' | 'focal' | null
+                
+                // Animation states
+                time: 0,
+                photons: [],
+                deviceMorph: 1, // 1 = convex, -1 = concave
+                targetDeviceMorph: 1,
+
+                // Interactive steps
+                explanationStep: -1,
+                hoveredMarker: null,
+                mouseX: 0,
+                mouseY: 0
+            };
+
+            let canvasWidth, canvasHeight, scale; 
+            let opticX, axisY, objectHeightPx;
+            const OBJECT_HEIGHT_CM = 5.5;
+
+            // ─────────────────────────────────────
+            // LAYOUT & SCALE CALCULATIONS
+            // ─────────────────────────────────────
+            function resizeCanvas() {
+                const rect = wrapper.getBoundingClientRect();
+                const dpr = Math.min(window.devicePixelRatio || 1, 2);
+                canvasWidth = rect.width;
+                canvasHeight = rect.height;
+                canvas.width = canvasWidth * dpr;
+                canvas.height = canvasHeight * dpr;
+                canvas.style.width = canvasWidth + 'px';
+                canvas.style.height = canvasHeight + 'px';
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                ctx.scale(dpr, dpr);
+
+                // Setup coordinates
+                opticX = canvasWidth * 0.52; // Shift slightly to right to give more space for left-side object u
+                axisY = canvasHeight * 0.52;
+                
+                // Dynamic Lab Workbench Scale (px per cm)
+                scale = Math.min(canvasWidth / 95, canvasHeight / 38);
+                scale = Math.max(5.5, Math.min(10.5, scale)); 
+                objectHeightPx = OBJECT_HEIGHT_CM * scale;
+            }
+
+            // ─────────────────────────────────────
+            // OPTICAL FORMULAS & PHYSICS LOGIC
+            // ─────────────────────────────────────
+            function getSignedF() {
+                if (state.deviceMode === 'lens') {
+                    return state.opticType === 'convex' ? Math.abs(state.focalLengthCm) : -Math.abs(state.focalLengthCm);
+                } else {
+                    return state.opticType === 'concave' ? -Math.abs(state.focalLengthCm) : Math.abs(state.focalLengthCm);
+                }
+            }
+
+            function getSignedU() {
+                return -Math.abs(state.objectDistanceCm);
+            }
+
+            function computeOptics() {
+                const f = getSignedF();
+                const u = getSignedU();
+                state.f = f;
+                state.u = u;
+
+                if (state.deviceMode === 'lens') {
+                    if (Math.abs(u + f) < 0.001 && u === -f) {
+                        state.v = Infinity;
+                        state.m = Infinity;
+                        state.imageReal = false;
+                        state.imageInverted = false;
+                        state.imageX = Infinity;
+                        state.imageHeight = 0;
+                    } else {
+                        const invV = 1 / f + 1 / u;
+                        if (Math.abs(invV) < 1e-7) {
+                            state.v = Infinity;
+                            state.m = Infinity;
+                        } else {
+                            state.v = 1 / invV;
+                            state.m = state.v / u;
+                        }
+                        state.imageReal = state.v > 0;
+                        state.imageInverted = state.m < 0;
+                        state.imageX = opticX + state.v * scale;
+                        state.imageHeight = Math.abs(state.m) * objectHeightPx;
+                    }
+                } else {
+                    if (Math.abs(u) === Math.abs(f) && u === f) {
+                        state.v = Infinity;
+                        state.m = Infinity;
+                        state.imageReal = false;
+                        state.imageInverted = false;
+                        state.imageX = Infinity;
+                        state.imageHeight = 0;
+                    } else {
+                        const invV = 1 / f - 1 / u;
+                        if (Math.abs(invV) < 1e-7) {
+                            state.v = Infinity;
+                            state.m = Infinity;
+                        } else {
+                            state.v = 1 / invV;
+                            state.m = -(state.v / u);
+                        }
+                        state.imageReal = state.v < 0;
+                        state.imageInverted = state.m < 0;
+                        state.imageX = opticX + state.v * scale;
+                        state.imageHeight = Math.abs(state.m) * objectHeightPx;
+                    }
+                }
+
+                if (Math.abs(state.imageHeight) > canvasHeight * 2) {
+                    state.imageHeight = Math.sign(state.imageHeight) * canvasHeight * 2;
+                }
+            }
+
+            // ─────────────────────────────────────
+            // UI INTERACTION HANDLERS
+            // ─────────────────────────────────────
+            function updateStateFromUI() {
+                state.opticType = lensTypeSelect.value;
+                state.focalLengthCm = parseFloat(focalLengthSlider.value);
+                state.objectDistanceCm = parseFloat(objectDistanceSlider.value);
+                state.lightSource = lightSourceSelect.value;
+                state.targetDeviceMorph = state.opticType === 'convex' ? 1 : -1;
+                
+                computeOptics();
+                updateDisplays();
+            }
+
+            function updateDisplays() {
+                focalLengthValEl.textContent = state.focalLengthCm.toFixed(1) + ' cm';
+                objectDistanceValEl.textContent = state.objectDistanceCm.toFixed(1) + ' cm';
+
+                const f = state.f;
+                const u = state.u;
+                const v = state.v;
+                const m = state.m;
+
+                if (state.deviceMode === 'lens') {
+                    typeLabel.textContent = "Lens Type";
+                    focalLabel.textContent = "Focal Length (f)";
+                    signBarDevice.textContent = "⟐ OPTICAL CENTER (O)";
+                    physicsGuideText.innerHTML = `<strong>Lens Mode:</strong> A <strong>convex</strong> lens converges rays. When $u > f$, a real inverted image is formed on the right. When $u < f$, a virtual, erect, magnified image is formed on the left. A <strong>concave</strong> lens diverges rays, always creating a virtual, upright, diminished image.`;
+                } else {
+                    typeLabel.textContent = "Mirror Type";
+                    focalLabel.textContent = "Focal Length (f)";
+                    signBarDevice.textContent = "⟐ MIRROR POLE (P)";
+                    physicsGuideText.innerHTML = `<strong>Mirror Mode:</strong> A <strong>concave</strong> mirror converges light. It forms real inverted images on the left side, except when the object is inside $F$ ($u < f$), where it creates a magnified virtual image behind the mirror. A <strong>convex</strong> mirror always creates diminished virtual images behind the mirror.`;
+                }
+
+                fDisplayEl.textContent = (f >= 0 ? '+' : '') + f.toFixed(1) + ' cm';
+                uDisplayEl.textContent = u.toFixed(1) + ' cm';
+
+                if (!isFinite(v) || Math.abs(v) > 5000) {
+                    vDisplayEl.textContent = 'At Infinity (∞)';
+                    magnificationEl.textContent = '∞';
+                    imageTypeEl.textContent = 'Highly Magnified, Infinite';
+                    focusTypeEl.textContent = 'Parallel Output';
+                    focusTypeEl.style.color = 'var(--text-secondary)';
+                } else {
+                    vDisplayEl.textContent = (v >= 0 ? '+' : '') + v.toFixed(1) + ' cm';
+                    magnificationEl.textContent = (m >= 0 ? '+' : '') + m.toFixed(2) + '×';
+
+                    if (state.deviceMode === 'lens') {
+                        focusTypeEl.textContent = state.opticType === 'convex' ? 'Real' : 'Virtual';
+                        focusTypeEl.style.color = state.opticType === 'convex' ? 'var(--success)' : 'var(--danger)';
+                    } else {
+                        focusTypeEl.textContent = state.opticType === 'concave' ? 'Real' : 'Virtual';
+                        focusTypeEl.style.color = state.opticType === 'concave' ? 'var(--success)' : 'var(--danger)';
+                    }
+
+                    const reality = state.imageReal ? 'Real' : 'Virtual';
+                    const orientation = state.imageInverted ? 'Inverted' : 'Upright';
+                    const scaleWord = Math.abs(m) > 1.05 ? 'Magnified' : (Math.abs(m) < 0.95 ? 'Diminished' : 'Same Size');
+                    
+                    imageTypeEl.textContent = `${reality}, ${orientation} (${scaleWord})`;
+                }
+            }
+
+            deviceModeSwitch.addEventListener('click', (e) => {
+                const btn = e.target.closest('.segmented-button');
+                if (!btn) return;
+                
+                deviceModeSwitch.querySelectorAll('.segmented-button').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                state.deviceMode = btn.dataset.mode;
+
+                if (state.deviceMode === 'lens') {
+                    lensTypeSelect.innerHTML = `
+                        <option value="convex">Convex (Converging)</option>
+                        <option value="concave">Concave (Diverging)</option>
+                    `;
+                } else {
+                    lensTypeSelect.innerHTML = `
+                        <option value="concave">Concave (Converging)</option>
+                        <option value="convex">Convex (Diverging)</option>
+                    `;
+                }
+                updateStateFromUI();
+                spawnPhotons();
+            });
+
+            // ─────────────────────────────────────
+            // PRINCIPAL RAY BINDING & PHYSICS TRACING
+            // ─────────────────────────────────────
+            function getObjectTip() {
+                return { x: opticX - Math.abs(state.u) * scale, y: axisY - objectHeightPx };
+            }
+
+            function getObjectBase() {
+                return { x: opticX - Math.abs(state.u) * scale, y: axisY };
+            }
+
+            function getImageTip() {
+                if (!isFinite(state.v) || Math.abs(state.v) > 5000) return null;
+                const imgY = state.imageInverted ? axisY + state.imageHeight : axisY - state.imageHeight;
+                return { x: state.imageX, y: imgY };
+            }
+
+            function getFocalPoints() {
+                const f = state.f;
+                const absF = Math.abs(f);
+
+                if (state.deviceMode === 'lens') {
+                    return {
+                        F1: { x: opticX - absF * scale, y: axisY, label: 'F' },
+                        F2: { x: opticX + absF * scale, y: axisY, label: "F'" }
+                    };
+                } else {
+                    const fX = opticX + f * scale;
+                    return {
+                        F1: { x: fX, y: axisY, label: 'F' },
+                        F2: { x: fX, y: axisY, label: 'F' }
+                    };
+                }
+            }
+
+            function get2FPoints() {
+                const absF = Math.abs(state.f);
+                if (state.deviceMode === 'lens') {
+                    return [
+                        { x: opticX - 2 * absF * scale, y: axisY, label: '2F' },
+                        { x: opticX + 2 * absF * scale, y: axisY, label: "2F'" }
+                    ];
+                } else {
+                    const cX = opticX + 2 * state.f * scale;
+                    return [
+                        { x: cX, y: axisY, label: 'C' }
+                    ];
+                }
+            }
+
+            function getRayPath(rayType) {
+                const objTip = getObjectTip();
+                const f = state.f;
+                const absF = Math.abs(f);
+                const F1 = getFocalPoints().F1;
+                const F2 = getFocalPoints().F2;
+
+                let hitY = objTip.y;
+                let exitPt = { x: opticX, y: hitY };
+                let direction = { x: 1, y: 0 };
+                let virtualDir = null;
+
+                if (state.deviceMode === 'lens') {
+                    if (rayType === 'parallel') {
+                        hitY = objTip.y;
+                        exitPt = { x: opticX, y: hitY };
+                        direction = { x: F2.x - opticX, y: F2.y - hitY };
+                        if (state.opticType === 'concave') {
+                            const fLeft = opticX - absF * scale;
+                            direction = { x: opticX - fLeft, y: hitY - F2.y };
+                            virtualDir = { x: fLeft - opticX, y: F2.y - hitY };
+                        } else {
+                            virtualDir = { x: -direction.x, y: -direction.y };
+                        }
+                    } 
+                    else if (rayType === 'central') {
+                        exitPt = { x: opticX, y: axisY };
+                        direction = { x: opticX - objTip.x, y: axisY - objTip.y };
+                    } 
+                    else if (rayType === 'focal') {
+                        if (state.opticType === 'convex') {
+                            const dx = F1.x - objTip.x;
+                            const dy = F1.y - objTip.y;
+                            const t = (opticX - objTip.x) / dx;
+                            hitY = objTip.y + dy * t;
+                            exitPt = { x: opticX, y: hitY };
+                            direction = { x: 1, y: 0 };
+                            virtualDir = { x: -1, y: 0 };
+                        } else {
+                            const fRight = opticX + absF * scale;
+                            const dx = fRight - objTip.x;
+                            const dy = axisY - objTip.y;
+                            const t = (opticX - objTip.x) / dx;
+                            hitY = objTip.y + dy * t;
+                            exitPt = { x: opticX, y: hitY };
+                            direction = { x: 1, y: 0 };
+                            virtualDir = { x: -1, y: 0 };
+                        }
+                    }
+                } 
+                else {
+                    const centerOfCurvatureX = opticX + 2 * f * scale;
+
+                    if (rayType === 'parallel') {
+                        hitY = objTip.y;
+                        exitPt = { x: opticX, y: hitY };
+                        direction = { x: (opticX + f * scale) - opticX, y: axisY - hitY };
+                        if (state.opticType === 'convex') {
+                            virtualDir = { x: direction.x, y: direction.y };
+                            direction = { x: -direction.x, y: -direction.y };
+                        } else {
+                            virtualDir = { x: -direction.x, y: -direction.y };
+                        }
+                    } 
+                    else if (rayType === 'central') {
+                        const dx = centerOfCurvatureX - objTip.x;
+                        const dy = axisY - objTip.y;
+                        const t = (opticX - objTip.x) / dx;
+                        hitY = objTip.y + dy * t;
+                        exitPt = { x: opticX, y: hitY };
+                        direction = { x: objTip.x - opticX, y: objTip.y - hitY };
+                        virtualDir = { x: -direction.x, y: -direction.y };
+                    } 
+                    else if (rayType === 'focal') {
+                        const fPtX = opticX + f * scale;
+                        const dx = fPtX - objTip.x;
+                        const dy = axisY - objTip.y;
+                        const t = (opticX - objTip.x) / dx;
+                        hitY = objTip.y + dy * t;
+                        exitPt = { x: opticX, y: hitY };
+                        direction = { x: -1, y: 0 };
+                        virtualDir = { x: 1, y: 0 };
+                    }
+                }
+
+                return { startPoint: objTip, hitY, exitPt, direction, virtualDir };
+            }
+
+            function getPointOnRay(rayType, t) {
+                const path = getRayPath(rayType);
+                const objTip = getObjectTip();
+                const lensPt = path.exitPt;
+
+                if (t <= 0.5) {
+                    const localT = t / 0.5;
+                    return {
+                        x: objTip.x + (lensPt.x - objTip.x) * localT,
+                        y: objTip.y + (lensPt.y - objTip.y) * localT,
+                        pastDevice: false
+                    };
+                } else {
+                    const localT = (t - 0.5) / 0.5;
+                    const dir = path.direction;
+                    const len = Math.sqrt(dir.x * dir.x + dir.y * dir.y);
+                    const normDir = { x: dir.x / len, y: dir.y / len };
+                    const range = Math.max(canvasWidth, canvasHeight);
+                    return {
+                        x: lensPt.x + normDir.x * range * localT,
+                        y: lensPt.y + normDir.y * range * localT,
+                        pastDevice: true
+                    };
+                }
+            }
+
+            // ─────────────────────────────────────
+            // PHOTON PARTICLE SYSTEM
+            // ─────────────────────────────────────
+            function spawnPhotons() {
+                state.photons = [];
+                if (!state.showRays || !state.animatePhotons) return;
+
+                const rayTypes = ['parallel', 'central', 'focal'];
+                const qty = 6;
+                const speedPreset = { parallel: 0.12, central: 0.11, focal: 0.115 };
+
+                rayTypes.forEach(ray => {
+                    for (let i = 0; i < qty; i++) {
+                        state.photons.push({
+                            rayType: ray,
+                            t: i / qty + Math.random() * 0.05,
+                            speed: speedPreset[ray] * (0.8 + Math.random() * 0.4),
+                            size: 2.2 + Math.random() * 1.5,
+                            alpha: 0.7 + Math.random() * 0.3
+                        });
+                    }
+                });
+            }
+
+            function updatePhotons(dt) {
+                if (!state.animatePhotons) return;
+                state.photons.forEach(p => {
+                    p.t += p.speed * dt * 0.8;
+                    if (p.t > 1.05) p.t -= 1.05;
+                    if (p.t < 0) p.t += 1.05;
+                });
+            }
+
+            // ─────────────────────────────────────
+            // RENDERING & CUSTOM VECTOR ART
+            // ─────────────────────────────────────
+            function drawGrid() {
+                if (!state.showGrid) return;
+                ctx.strokeStyle = '#e2e8f0';
+                ctx.lineWidth = 0.5;
+                const gridSpacing = scale * 2;
+                for (let x = gridSpacing; x < canvasWidth; x += gridSpacing) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, canvasHeight);
+                    ctx.stroke();
+                }
+                for (let y = gridSpacing; y < canvasHeight; y += gridSpacing) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(canvasWidth, y);
+                    ctx.stroke();
+                }
+            }
+
+            function drawPrincipalAxis() {
+                ctx.strokeStyle = '#475569';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([6, 4]);
+                ctx.beginPath();
+                ctx.moveTo(20, axisY);
+                ctx.lineTo(canvasWidth - 20, axisY);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                ctx.fillStyle = '#475569';
+                ctx.beginPath();
+                ctx.moveTo(canvasWidth - 15, axisY);
+                ctx.lineTo(canvasWidth - 27, axisY - 5);
+                ctx.lineTo(canvasWidth - 27, axisY + 5);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.moveTo(15, axisY);
+                ctx.lineTo(27, axisY - 5);
+                ctx.lineTo(27, axisY + 5);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.fillStyle = '#64748b';
+                ctx.font = 'bold 10px sans-serif';
+                ctx.fillText('PRINCIPAL AXIS', 35, axisY - 10);
+            }
+
+            function drawOpticDevice() {
+                const morph = state.deviceMorph;
+                const h = Math.min(objectHeightPx * 2.1, canvasHeight * 0.35);
+                const w = 18;
+
+                ctx.save();
+                
+                const isConvex = state.opticType === 'convex';
+                const fillColor = state.deviceMode === 'lens' 
+                    ? 'rgba(186, 230, 253, 0.35)' 
+                    : 'rgba(203, 213, 225, 0.4)';  
+                const strokeColor = state.deviceMode === 'lens' ? '#0284c7' : '#475569';
+
+                ctx.fillStyle = fillColor;
+                ctx.strokeStyle = strokeColor;
+                ctx.lineWidth = 3;
+                ctx.shadowColor = 'rgba(14, 165, 233, 0.2)';
+                ctx.shadowBlur = 15;
+
+                if (state.deviceMode === 'lens') {
+                    if (isConvex) {
+                        ctx.beginPath();
+                        ctx.moveTo(opticX, axisY - h);
+                        ctx.quadraticCurveTo(opticX + w, axisY, opticX, axisY + h);
+                        ctx.quadraticCurveTo(opticX - w, axisY, opticX, axisY - h);
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.stroke();
+                    } else {
+                        ctx.beginPath();
+                        ctx.moveTo(opticX - w, axisY - h);
+                        ctx.lineTo(opticX + w, axisY - h);
+                        ctx.quadraticCurveTo(opticX + 4, axisY, opticX + w, axisY + h);
+                        ctx.lineTo(opticX - w, axisY + h);
+                        ctx.quadraticCurveTo(opticX - 4, axisY, opticX - w, axisY - h);
+                        ctx.closePath();
+                        ctx.fill();
+                        ctx.stroke();
+                    }
+                } else {
+                    const mirrorCurve = isConvex ? -w : w;
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(opticX - mirrorCurve, axisY - h);
+                    ctx.quadraticCurveTo(opticX + mirrorCurve, axisY, opticX - mirrorCurve, axisY + h);
+                    ctx.stroke();
+
+                    ctx.strokeStyle = '#94a3b8';
+                    ctx.lineWidth = 1.5;
+                    const steps = 14;
+                    for (let i = 0; i <= steps; i++) {
+                        const ratio = i / steps;
+                        const hatchY = (axisY - h) + (2 * h) * ratio;
+                        
+                        const localY = hatchY - axisY;
+                        const factor = 1 - (localY * localY) / (h * h);
+                        const hatchX = opticX - mirrorCurve + (mirrorCurve * 2 * factor);
+
+                        ctx.beginPath();
+                        ctx.moveTo(hatchX, hatchY);
+                        const dirX = isConvex ? 6 : -6;
+                        ctx.lineTo(hatchX + dirX, hatchY - 4);
+                        ctx.stroke();
+                    }
+                }
+
+                ctx.restore();
+
+                ctx.fillStyle = '#0f172a';
+                ctx.beginPath();
+                ctx.arc(opticX, axisY, 5, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#ffffff';
+                ctx.beginPath();
+                ctx.arc(opticX, axisY, 2.5, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            function drawObject() {
+                const tip = getObjectTip();
+                const base = getObjectBase();
+
+                const isHovered = state.hoveredMarker === 'object';
+                ctx.save();
+                if (isHovered) {
+                    ctx.shadowColor = 'var(--accent)';
+                    ctx.shadowBlur = 10;
+                }
+
+                ctx.strokeStyle = '#0f172a';
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.moveTo(base.x, base.y);
+                ctx.lineTo(tip.x, tip.y);
+                ctx.stroke();
+
+                ctx.strokeStyle = isHovered ? 'var(--accent)' : '#475569';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+
+                const arrowSize = 10;
+                ctx.fillStyle = '#0f172a';
+                ctx.beginPath();
+                ctx.moveTo(tip.x, tip.y);
+                ctx.lineTo(tip.x - arrowSize, tip.y + arrowSize * 1.4);
+                ctx.lineTo(tip.x + arrowSize, tip.y + arrowSize * 1.4);
+                ctx.closePath();
+                ctx.fill();
+
+                if (isHovered) {
+                    ctx.fillStyle = 'var(--accent)';
+                    ctx.beginPath();
+                    ctx.arc(tip.x, tip.y, 4, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+
+                ctx.fillStyle = '#0f172a';
+                ctx.font = 'bold 11px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('OBJECT', base.x, base.y + 16);
+                ctx.restore();
+            }
+
+            function drawImage() {
+                const tip = getImageTip();
+                const base = getImageBase();
+                if (!tip || !base) return;
+
+                const isReal = state.imageReal;
+                const arrowSize = 9;
+
+                ctx.save();
+                ctx.lineWidth = 3.5;
+
+                if (isReal) {
+                    ctx.strokeStyle = 'var(--success)';
+                    ctx.fillStyle = 'var(--success)';
+                    ctx.beginPath();
+                    ctx.moveTo(base.x, base.y);
+                    ctx.lineTo(tip.x, tip.y);
+                    ctx.stroke();
+
+                    const headDir = state.imageInverted ? 1 : -1;
+                    ctx.beginPath();
+                    ctx.moveTo(tip.x, tip.y);
+                    ctx.lineTo(tip.x - arrowSize, tip.y - arrowSize * 1.4 * headDir);
+                    ctx.lineTo(tip.x + arrowSize, tip.y - arrowSize * 1.4 * headDir);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    ctx.fillStyle = 'var(--success)';
+                    ctx.font = 'bold 11px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('REAL IMAGE', base.x, base.y + (state.imageInverted ? -10 : 16));
+                } else {
+                    ctx.strokeStyle = 'var(--danger)';
+                    ctx.fillStyle = 'var(--danger)';
+                    ctx.setLineDash([6, 4]);
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(base.x, base.y);
+                    ctx.lineTo(tip.x, tip.y);
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+
+                    const headDir = state.imageInverted ? 1 : -1;
+                    ctx.beginPath();
+                    ctx.moveTo(tip.x, tip.y);
+                    ctx.lineTo(tip.x - arrowSize, tip.y - arrowSize * 1.4 * headDir);
+                    ctx.lineTo(tip.x + arrowSize, tip.y - arrowSize * 1.4 * headDir);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    ctx.font = 'bold 11px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText('VIRTUAL IMAGE', base.x, base.y + (state.imageInverted ? -10 : 16));
+                }
+                ctx.restore();
+            }
+
+            function getImageBase() {
+                if (!isFinite(state.v) || Math.abs(state.v) > 5000) return null;
+                return { x: state.imageX, y: axisY };
+            }
+
+            function drawFocusPoints() {
+                if (!state.showFocus) return;
+                const Fs = getFocalPoints();
+                const points = [Fs.F1, Fs.F2];
+
+                points.forEach((pt, index) => {
+                    const isF2 = index === 1;
+                    if (state.deviceMode === 'mirror' && isF2) return;
+
+                    const isHovered = state.hoveredMarker === `focus_${index}`;
+                    ctx.save();
+
+                    const radius = isHovered ? 12 : 8;
+                    const grad = ctx.createRadialGradient(pt.x, pt.y, 1, pt.x, pt.y, radius);
+                    grad.addColorStop(0, 'rgba(59, 130, 246, 0.5)');
+                    grad.addColorStop(1, 'rgba(59, 130, 246, 0)');
+                    ctx.fillStyle = grad;
+                    ctx.beginPath();
+                    ctx.arc(pt.x, pt.y, radius, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.fillStyle = 'var(--accent)';
+                    ctx.strokeStyle = '#ffffff';
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    ctx.arc(pt.x, pt.y, isHovered ? 6 : 4.5, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.stroke();
+
+                    ctx.fillStyle = '#1e293b';
+                    ctx.font = 'bold 11px sans-serif';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(pt.label, pt.x, pt.y - 10);
+                    ctx.restore();
+                });
+
+                if (state.show2F) {
+                    const extraPts = get2FPoints();
+                    extraPts.forEach(pt => {
+                        ctx.save();
+                        ctx.fillStyle = '#64748b';
+                        ctx.strokeStyle = '#ffffff';
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.arc(pt.x, pt.y, 4, 0, Math.PI * 2);
+                        ctx.fill();
+                        ctx.stroke();
+
+                        ctx.font = 'bold 11px sans-serif';
+                        ctx.fillText(pt.label, pt.x, pt.y - 10);
+                        ctx.restore();
+                    });
+                }
+            }
+
+            function drawRays() {
+                if (!state.showRays) return;
+                const rayTypes = ['parallel', 'central', 'focal'];
+                const rayColors = {
+                    parallel: 'var(--ray-parallel)',
+                    central: 'var(--ray-central)',
+                    focal: 'var(--ray-focal)'
+                };
+
+                rayTypes.forEach(ray => {
+                    const path = getRayPath(ray);
+                    const color = rayColors[ray];
+
+                    ctx.save();
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(path.startPoint.x, path.startPoint.y);
+                    ctx.lineTo(path.exitPt.x, path.hitY);
+                    ctx.stroke();
+
+                    const midX = (path.startPoint.x + path.exitPt.x) / 2;
+                    const midY = (path.startPoint.y + path.hitY) / 2;
+                    ctx.fillStyle = color;
+                    ctx.beginPath();
+                    ctx.moveTo(midX, midY);
+                    ctx.lineTo(midX - 8, midY - 4);
+                    ctx.lineTo(midX - 8, midY + 4);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    const dir = path.direction;
+                    const len = Math.sqrt(dir.x * dir.x + dir.y * dir.y);
+                    if (len > 0.1) {
+                        const norm = { x: dir.x / len, y: dir.y / len };
+                        const extent = Math.max(canvasWidth, canvasHeight);
+                        const endX = path.exitPt.x + norm.x * extent;
+                        const endY = path.hitY + norm.y * extent;
+
+                        ctx.beginPath();
+                        ctx.moveTo(path.exitPt.x, path.hitY);
+                        ctx.lineTo(endX, endY);
+                        ctx.stroke();
+                    }
+
+                    if (state.showExtensions && path.virtualDir) {
+                        const vDir = path.virtualDir;
+                        const vLen = Math.sqrt(vDir.x * vDir.x + vDir.y * vDir.y);
+                        if (vLen > 0.1) {
+                            const vNorm = { x: vDir.x / vLen, y: vDir.y / vLen };
+                            const vExtent = Math.max(canvasWidth, canvasHeight);
+                            
+                            ctx.strokeStyle = color;
+                            ctx.lineWidth = 1.2;
+                            ctx.setLineDash([4, 4]);
+                            ctx.beginPath();
+                            ctx.moveTo(path.exitPt.x, path.hitY);
+                            ctx.lineTo(path.exitPt.x + vNorm.x * vExtent, path.hitY + vNorm.y * vExtent);
+                            ctx.stroke();
+                        }
+                    }
+                    ctx.restore();
+                });
+            }
+
+            function drawLaserBeam() {
+                if (state.lightSource !== 'laser') return;
+                const objTip = getObjectTip();
+                const path = getRayPath('parallel');
+
+                ctx.save();
+                ctx.strokeStyle = 'rgba(239, 68, 68, 0.4)';
+                ctx.lineWidth = 6;
+                ctx.beginPath();
+                ctx.moveTo(0, objTip.y);
+                ctx.lineTo(opticX, objTip.y);
+                ctx.stroke();
+
+                ctx.strokeStyle = '#ef4444';
+                ctx.lineWidth = 2.5;
+                ctx.beginPath();
+                ctx.moveTo(0, objTip.y);
+                ctx.lineTo(opticX, objTip.y);
+                ctx.stroke();
+
+                const dir = path.direction;
+                const len = Math.sqrt(dir.x * dir.x + dir.y * dir.y);
+                if (len > 0.1) {
+                    const norm = { x: dir.x / len, y: dir.y / len };
+                    const endX = opticX + norm.x * canvasWidth;
+                    const endY = objTip.y + norm.y * canvasWidth;
+
+                    ctx.strokeStyle = 'rgba(239, 68, 68, 0.4)';
+                    ctx.lineWidth = 6;
+                    ctx.beginPath();
+                    ctx.moveTo(opticX, objTip.y);
+                    ctx.lineTo(endX, endY);
+                    ctx.stroke();
+
+                    ctx.strokeStyle = '#ef4444';
+                    ctx.lineWidth = 2.5;
+                    ctx.beginPath();
+                    ctx.moveTo(opticX, objTip.y);
+                    ctx.lineTo(endX, endY);
+                    ctx.stroke();
+                }
+                ctx.restore();
+            }
+
+            function drawParallelBeam() {
+                if (state.lightSource !== 'parallel') return;
+                const beams = 7;
+                const spacing = 16;
+
+                ctx.save();
+                ctx.strokeStyle = 'rgba(249, 115, 22, 0.6)';
+                ctx.lineWidth = 1.5;
+
+                for (let i = -3; i <= 3; i++) {
+                    const y = axisY + i * spacing;
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(opticX, y);
+                    ctx.stroke();
+
+                    ctx.fillStyle = 'rgba(249, 115, 22, 0.8)';
+                    ctx.beginPath();
+                    ctx.moveTo(opticX - 30, y);
+                    ctx.lineTo(opticX - 38, y - 4);
+                    ctx.lineTo(opticX - 38, y + 4);
+                    ctx.closePath();
+                    ctx.fill();
+
+                    let dirY = 0;
+                    let dirX = 1;
+
+                    if (state.deviceMode === 'lens') {
+                        if (state.opticType === 'convex') {
+                            const fRight = opticX + Math.abs(state.f) * scale;
+                            dirX = fRight - opticX;
+                            dirY = axisY - y;
+                        } else {
+                            const fLeft = opticX - Math.abs(state.f) * scale;
+                            dirX = opticX - fLeft;
+                            dirY = y - axisY;
+                        }
+                    } else {
+                        const fPtX = opticX + state.f * scale;
+                        if (state.opticType === 'concave') {
+                            dirX = fPtX - opticX;
+                            dirY = axisY - y;
+                        } else {
+                            dirX = opticX - fPtX;
+                            dirY = y - axisY;
+                        }
+                    }
+
+                    const len = Math.sqrt(dirX * dirX + dirY * dirY);
+                    const norm = { x: dirX / len, y: dirY / len };
+                    
+                    ctx.beginPath();
+                    ctx.moveTo(opticX, y);
+                    ctx.lineTo(opticX + norm.x * canvasWidth, y + norm.y * canvasWidth);
+                    ctx.stroke();
+                }
+                ctx.restore();
+            }
+
+            function drawPhotons() {
+                if (!state.animatePhotons || !state.showRays || state.lightSource !== 'point') return;
+                
+                const rayColors = {
+                    parallel: 'rgba(249, 115, 22, ',
+                    central: 'rgba(59, 130, 246, ',
+                    focal: 'rgba(139, 92, 246, '
+                };
+
+                state.photons.forEach(p => {
+                    const pt = getPointOnRay(p.rayType, p.t);
+                    if (pt.x < -20 || pt.x > canvasWidth + 20) return;
+
+                    ctx.save();
+                    const colorPrefix = rayColors[p.rayType];
+                    
+                    ctx.fillStyle = colorPrefix + (p.alpha * 0.3) + ')';
+                    ctx.beginPath();
+                    ctx.arc(pt.x, pt.y, p.size * 3.5, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.fillStyle = colorPrefix + '1.0)';
+                    ctx.beginPath();
+                    ctx.arc(pt.x, pt.y, p.size, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.fillStyle = '#ffffff';
+                    ctx.beginPath();
+                    ctx.arc(pt.x, pt.y, p.size * 0.4, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                });
+            }
+
+            function drawMeasurementMarkers() {
+                const u = Math.abs(state.u);
+                const v = Math.abs(state.v);
+
+                ctx.save();
+                ctx.strokeStyle = '#94a3b8';
+                ctx.lineWidth = 1;
+                ctx.fillStyle = '#475569';
+                ctx.font = '10px monospace';
+
+                const objX = opticX - u * scale;
+                ctx.beginPath();
+                ctx.moveTo(objX, axisY + 15);
+                ctx.lineTo(objX, axisY + 45);
+                ctx.moveTo(opticX, axisY + 15);
+                ctx.lineTo(opticX, axisY + 45);
+                ctx.stroke();
+
+                ctx.beginPath();
+                ctx.moveTo(objX, axisY + 35);
+                ctx.lineTo(opticX, axisY + 35);
+                ctx.stroke();
+
+                ctx.fillText('u = ' + u.toFixed(1) + ' cm', (objX + opticX) / 2 - 25, axisY + 30);
+
+                if (isFinite(v) && Math.abs(v) < 5000) {
+                    const imgX = opticX + state.v * scale;
+                    ctx.beginPath();
+                    ctx.moveTo(imgX, axisY + 15);
+                    ctx.lineTo(imgX, axisY + 45);
+                    ctx.stroke();
+
+                    ctx.beginPath();
+                    ctx.moveTo(opticX, axisY + 35);
+                    ctx.lineTo(imgX, axisY + 35);
+                    ctx.stroke();
+
+                    ctx.fillText('v = ' + v.toFixed(1) + ' cm', (opticX + imgX) / 2 - 25, axisY + 30);
+                }
+                ctx.restore();
+            }
+
+            function drawExplanationOverlay() {
+                if (state.explanationStep < 0) return;
+
+                const lensSteps = [
+                    "Step 1: Incident parallel ray refracts through principal focus F'.",
+                    "Step 2: Central ray passes straight through Optical Center (O) undeviated.",
+                    "Step 3: Focal ray (through F) refracts parallel to principal axis.",
+                    "Step 4: All principal refracted rays converge to form the REAL image.",
+                    "Step 5: When placed inside F, rays diverge; tracing backwards forms a VIRTUAL image."
+                ];
+
+                const mirrorSteps = [
+                    "Step 1: Parallel incident ray reflects off mirror surface through Focus F.",
+                    "Step 2: Central ray through Center of curvature C reflects straight back.",
+                    "Step 3: Ray hitting Pole P reflects at equal angle to principal axis.",
+                    "Step 4: Intersection of reflected rays forms the image.",
+                    "Step 5: Virtual images are formed behind the mirror where backwards traces meet."
+                ];
+
+                const list = state.deviceMode === 'lens' ? lensSteps : mirrorSteps;
+                const idx = Math.min(state.explanationStep, list.length - 1);
+
+                ctx.save();
+                ctx.fillStyle = 'rgba(15, 23, 42, 0.95)';
+                ctx.strokeStyle = 'var(--accent)';
+                ctx.lineWidth = 1.5;
+                ctx.beginPath();
+                ctx.roundRect(canvasWidth / 2 - 250, 15, 500, 52, 8);
+                ctx.fill();
+                ctx.stroke();
+
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 12px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText(list[idx], canvasWidth / 2, 34);
+
+                ctx.fillStyle = 'var(--text-secondary)';
+                ctx.font = '10px sans-serif';
+                ctx.fillText(`💡 Click 'Explain' to step forward  •  [Step ${idx+1}/${list.length}]`, canvasWidth / 2, 54);
+                ctx.restore();
+            }
+
+            // ─────────────────────────────────────
+            // CORE SIMULATION UPDATE & RENDER
+            // ─────────────────────────────────────
+            function render() {
+                ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+
+                ctx.fillStyle = '#f8fafc';
+                ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+
+                drawGrid();
+                drawPrincipalAxis();
+                drawMeasurementMarkers();
+                drawFocusPoints();
+                drawRays();
+                drawLaserBeam();
+                drawParallelBeam();
+                drawPhotons();
+                drawOpticDevice();
+                drawObject();
+                drawImage();
+                drawExplanationOverlay();
+                updateHoverTooltip();
+            }
+
+            // ─────────────────────────────────────
+            // INTERACTIVE DRAGGING SYSTEM
+            // ─────────────────────────────────────
+            function updateHoverTooltip() {
+                if (state.draggedElement) {
+                    tooltip.classList.remove('visible');
+                    return;
+                }
+
+                const Fs = getFocalPoints();
+                const objTip = getObjectTip();
+                let hovered = null;
+
+                const objDist = Math.hypot(state.mouseX - objTip.x, state.mouseY - objTip.y);
+                if (objDist < 25) {
+                    hovered = 'object';
+                    tooltip.textContent = '✥ Drag to move Object (u)';
+                    tooltip.style.left = (objTip.x + 12) + 'px';
+                    tooltip.style.top = (objTip.y - 12) + 'px';
+                } else {
+                    const f1Dist = Math.hypot(state.mouseX - Fs.F1.x, state.mouseY - Fs.F1.y);
+                    if (f1Dist < 16) {
+                        hovered = 'focus_0';
+                        tooltip.textContent = `✥ Drag Focus F (${state.focalLengthCm.toFixed(1)}cm)`;
+                        tooltip.style.left = (Fs.F1.x + 12) + 'px';
+                        tooltip.style.top = (Fs.F1.y - 12) + 'px';
+                    }
+                }
+
+                state.hoveredMarker = hovered;
+                if (hovered) {
+                    tooltip.classList.add('visible');
+                } else {
+                    tooltip.classList.remove('visible');
+                }
+            }
+
+            function handleMouseDown(e) {
+                const rect = canvas.getBoundingClientRect();
+                const clickX = e.clientX - rect.left;
+                const clickY = e.clientY - rect.top;
+
+                const Fs = getFocalPoints();
+                const objTip = getObjectTip();
+
+                if (Math.hypot(clickX - objTip.x, clickY - objTip.y) < 25) {
+                    state.draggedElement = 'object';
+                }
+                else if (Math.hypot(clickX - Fs.F1.x, clickY - Fs.F1.y) < 16) {
+                    state.draggedElement = 'focal';
+                }
+            }
+
+            function handleMouseMove(e) {
+                const rect = canvas.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left;
+                const mouseY = e.clientY - rect.top;
+
+                state.mouseX = mouseX;
+                state.mouseY = mouseY;
+
+                if (state.draggedElement === 'object') {
+                    const calculatedU = Math.max(3, Math.min(80, (opticX - mouseX) / scale));
+                    state.objectDistanceCm = calculatedU;
+                    objectDistanceSlider.value = calculatedU;
+                    updateStateFromUI();
+                    spawnPhotons();
+                } else if (state.draggedElement === 'focal') {
+                    const calculatedF = Math.max(5, Math.min(35, Math.abs(opticX - mouseX) / scale));
+                    state.focalLengthCm = calculatedF;
+                    focalLengthSlider.value = calculatedF;
+                    updateStateFromUI();
+                    spawnPhotons();
+                }
+            }
+
+            function handleMouseUp() {
+                state.draggedElement = null;
+            }
+
+            // ─────────────────────────────────────
+            // CHIP SELECTIONS & ANIMATION LOOPS
+            // ─────────────────────────────────────
+            function initToggles() {
+                const configureChip = (chip, key) => {
+                    chip.addEventListener('click', () => {
+                        state[key] = !state[key];
+                        chip.classList.toggle('active', state[key]);
+                        updateStateFromUI();
+                        spawnPhotons();
+                    });
+                };
+
+                configureChip(toggleExtensions, 'showExtensions');
+                configureChip(toggleRays, 'showRays');
+                configureChip(toggleFocus, 'showFocus');
+                configureChip(toggle2F, 'show2F');
+                configureChip(togglePhotons, 'animatePhotons');
+                configureChip(toggleGrid, 'showGrid');
+            }
+
+            let lastTime = 0;
+            function runAnimation(timestamp) {
+                if (!lastTime) lastTime = timestamp;
+                let dt = (timestamp - lastTime) / 1000;
+                if (dt > 0.1) dt = 0.1;
+                lastTime = timestamp;
+
+                const morphSpeed = 8;
+                state.deviceMorph += (state.targetDeviceMorph - state.deviceMorph) * Math.min(morphSpeed * dt, 1);
+
+                updatePhotons(dt);
+                render();
+                requestAnimationFrame(runAnimation);
+            }
+
+            resetBtn.addEventListener('click', () => {
+                focalLengthSlider.value = 12;
+                objectDistanceSlider.value = 25;
+                lightSourceSelect.value = 'point';
+                state.explanationStep = -1;
+                updateStateFromUI();
+                spawnPhotons();
+            });
+
+            stepBtn.addEventListener('click', () => {
+                if (state.explanationStep < 4) {
+                    state.explanationStep++;
+                } else {
+                    state.explanationStep = 0;
+                }
+            });
+
+            focalLengthSlider.addEventListener('input', updateStateFromUI);
+            objectDistanceSlider.addEventListener('input', updateStateFromUI);
+            lightSourceSelect.addEventListener('change', () => {
+                updateStateFromUI();
+                spawnPhotons();
+            });
+            lensTypeSelect.addEventListener('change', updateStateFromUI);
+
+            canvas.addEventListener('mousedown', handleMouseDown);
+            window.addEventListener('mousemove', handleMouseMove);
+            window.addEventListener('mouseup', handleMouseUp);
+            window.addEventListener('resize', () => {
+                resizeCanvas();
+                computeOptics();
+            });
+
+
+            // ====================================================
+            // ✨ GEMINI API UTILITIES & COACH LOGIC
+            // ====================================================
+            
+            // Format incoming tutor text to beautiful basic HTML structure safely
+            function formatMarkdown(text) {
+                return text
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    // Headings
+                    .replace(/^### (.*$)/gim, '<h4>$1</h4>')
+                    .replace(/^## (.*$)/gim, '<h4>$1</h4>')
+                    .replace(/^# (.*$)/gim, '<h4>$1</h4>')
+                    // Bold
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    // Italics
+                    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                    // Code block
+                    .replace(/`(.*?)`/g, '<code>$1</code>')
+                    // Linebreaks
+                    .replace(/\n/g, '<br>')
+                    // Unordered Lists
+                    .replace(/^\s*-\s+(.*$)/gim, '<li>$1</li>');
+            }
+
+            function appendToTerminal(sender, title, htmlContent) {
+                const bubble = document.createElement('div');
+                bubble.className = `coach-bubble ${sender}-msg`;
+                bubble.innerHTML = `<h4>${title}</h4>${htmlContent}`;
+                coachTerminal.appendChild(bubble);
+                coachTerminal.scrollTop = coachTerminal.scrollHeight;
+            }
+
+            async function askGemini(prompt, systemInstruction = "") {
+                const apiKey = ""; // API key gets injected at runtime securely
+                const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+                
+                const payload = {
+                    contents: [{ parts: [{ text: prompt }] }]
+                };
+                if (systemInstruction) {
+                    payload.systemInstruction = { parts: [{ text: systemInstruction }] };
+                }
+
+                let delay = 1000;
+                for (let attempt = 0; attempt < 5; attempt++) {
+                    try {
+                        const response = await fetch(url, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+                        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                        const data = await response.json();
+                        return data.candidates?.[0]?.content?.parts?.[0]?.text || "No response received from Professor Lumens.";
+                    } catch (error) {
+                        if (attempt === 4) throw error;
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        delay *= 2; // Exponential backoff: 1s, 2s, 4s, 8s, 16s
+                    }
+                }
+            }
+
+            // Function to generate string summarizing laboratory workbench state
+            function getOpticsStateDescription() {
+                const f = state.f;
+                const u = state.u;
+                const v = state.v;
+                const m = state.m;
+                const modeStr = state.deviceMode === 'lens' ? 'Thin Lens' : 'Spherical Mirror';
+                const typeStr = state.opticType === 'convex' ? 'Convex (Converging)' : 'Concave (Diverging)';
+                const isReal = state.imageReal ? 'Real' : 'Virtual';
+                const isInv = state.imageInverted ? 'Inverted' : 'Upright';
+                const sizeStr = Math.abs(m) > 1.05 ? 'Magnified' : (Math.abs(m) < 0.95 ? 'Diminished' : 'Same Size');
+
+                return `Optical Device: ${modeStr} (${typeStr})
+- Focal Length (f): ${f >= 0 ? '+' : ''}${f.toFixed(1)} cm
+- Object Distance (u): ${u.toFixed(1)} cm
+- Image Distance (v): ${isFinite(v) ? (v >= 0 ? '+' : '') + v.toFixed(1) + ' cm' : 'Infinity'}
+- Magnification (m): ${isFinite(m) ? (m >= 0 ? '+' : '') + m.toFixed(2) + 'x' : 'Infinity'}
+- Computed Image Nature: ${isReal}, ${isInv}, ${sizeStr}
+- Light Source: ${state.lightSource}`;
+            }
+
+            async function triggerCoachAnalysis() {
+                coachLoadingArea.style.display = 'flex';
+                coachLoadingText.textContent = "Professor Lumens is analyzing the setup...";
+                
+                const prompt = `Analyze the current state of my optical laboratory experiment. Explain the physics of this particular setup clearly:
+${getOpticsStateDescription()}
+
+Please:
+1. Explain why this specific configuration produces this image nature (use the thin lens/mirror formula if helpful).
+2. Point out the sign conventions (how Cartesian signs relate to the left/right sides).
+3. Mention 1 or 2 practical, real-world devices that rely on this specific setup (e.g., car headlights, magnifying glasses, camera lenses, cosmetic mirrors).`;
+
+                const systemInstruction = `You are Professor Lumens, an inspiring, enthusiastic physics instructor helping a student learn optics. Explain concepts with clear formatting, step-by-step guidance, and real-world applicability. Keep your response engaging, friendly, and concise (under 250 words).`;
+
+                try {
+                    const aiResponse = await askGemini(prompt, systemInstruction);
+                    appendToTerminal('coach', 'Professor Lumens', formatMarkdown(aiResponse));
+                } catch (error) {
+                    appendToTerminal('coach', 'System Alert', '<span style="color:var(--danger)">Failed to connect to Professor Lumens. Please verify internet connection.</span>');
+                } finally {
+                    coachLoadingArea.style.display = 'none';
+                }
+            }
+
+            async function triggerCoachChallenge() {
+                coachLoadingArea.style.display = 'flex';
+                coachLoadingText.textContent = "Creating a custom optics challenge...";
+
+                const prompt = `Create an interactive physics challenge for me. Base it on the current workbench parameters:
+${getOpticsStateDescription()}
+
+Create a word problem that fits this setup, but don't give away the final numerical values of the image distance or magnification instantly. Ask me to calculate it or think about what will happen conceptually if I move the object closer or further away. Include the solution in a hidden/clear format at the end.`;
+
+                const systemInstruction = `You are Professor Lumens, creating engaging science quizzes. Keep the problem educational, structured, and challenging yet accessible. Do not exceed 200 words.`;
+
+                try {
+                    const aiResponse = await askGemini(prompt, systemInstruction);
+                    appendToTerminal('coach', 'Lab Challenge 🎯', formatMarkdown(aiResponse));
+                } catch (error) {
+                    appendToTerminal('coach', 'System Alert', '<span style="color:var(--danger)">Could not generate lab challenge.</span>');
+                } finally {
+                    coachLoadingArea.style.display = 'none';
+                }
+            }
+
+            async function sendUserMessage() {
+                const userText = coachInput.value.trim();
+                if (!userText) return;
+
+                coachInput.value = "";
+                appendToTerminal('user', 'You', formatMarkdown(userText));
+
+                coachLoadingArea.style.display = 'flex';
+                coachLoadingText.textContent = "Professor Lumens is thinking...";
+
+                const prompt = `Student asked: "${userText}"
+My current lab state is:
+${getOpticsStateDescription()}`;
+
+                const systemInstruction = `You are Professor Lumens, an expert optics science coach. Answer the student's question accurately in a encouraging, academic, yet simple manner. Relate it back to the current physical laboratory state on the workbench if relevant.`;
+
+                try {
+                    const aiResponse = await askGemini(prompt, systemInstruction);
+                    appendToTerminal('coach', 'Professor Lumens', formatMarkdown(aiResponse));
+                } catch (error) {
+                    appendToTerminal('coach', 'System Alert', '<span style="color:var(--danger)">Connection to Professor Lumens timed out.</span>');
+                } finally {
+                    coachLoadingArea.style.display = 'none';
+                }
+            }
+
+            // Bind ✨ Coach Events
+            coachAnalyzeBtn.addEventListener('click', triggerCoachAnalysis);
+            coachChallengeBtn.addEventListener('click', triggerCoachChallenge);
+            coachSendBtn.addEventListener('click', sendUserMessage);
+            coachInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') sendUserMessage();
+            });
+
+            // POLYFILL ROUND RECT FOR ALL BROWSERS
+            if (!ctx.roundRect) {
+                ctx.roundRect = function(x, y, w, h, r) {
+                    if (typeof r === 'number') r = { tl: r, tr: r, br: r, bl: r };
+                    ctx.beginPath();
+                    ctx.moveTo(x + r.tl, y);
+                    ctx.lineTo(x + w - r.tr, y);
+                    ctx.quadraticCurveTo(x + w, y, x + w, y + r.tr);
+                    ctx.lineTo(x + w, y + h - r.br);
+                    ctx.quadraticCurveTo(x + w, y + h, x + w - r.br, y + h);
+                    ctx.lineTo(x + r.bl, y + h);
+                    ctx.quadraticCurveTo(x, y + h, x, y + h - r.bl);
+                    ctx.lineTo(x, y + r.tl);
+                    ctx.quadraticCurveTo(x, y, x + r.tl, y);
+                    ctx.closePath();
+                };
+            }
+
+            // START THE SIMULATION
+            resizeCanvas();
+            updateStateFromUI();
+            initToggles();
+            spawnPhotons();
+            requestAnimationFrame(runAnimation);
+
+        })();
+    </script>
+</body>
+</html>
